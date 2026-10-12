@@ -52,13 +52,13 @@ async function run() {
       const photo = {pk: '555555555555', user: media.user, image_versions2: {candidates: [{url: `${cdn}/poster.png`, width: 720, height: 1280}]}};
       const post = {pk: '456789012345', code: 'FixturePost', user: media.user, carousel_media: [media, photo]};
       if (fixtureMode === 'photo') return route.fulfill({contentType: 'text/html', body: `<!doctype html><style>body{margin:0}.story-frame{position:relative;width:min(400px,100vw);height:700px;margin:0 auto}img{display:block;width:100%;height:700px}button{position:absolute;left:80%;top:20px}</style><div class="story-frame" id="story-frame"><img src="${cdn}/poster.png"></div><button aria-label="Pause">Pause</button><script>window.fixtureReady=true;</script>`});
-      const postMode = fixtureMode === 'carousel';
+      const postMode = ['carousel', 'carousel-page'].includes(fixtureMode);
       const initial = postMode ? `<script type="application/json">${JSON.stringify({data: {post}})}</script>` : '';
       const script = fixtureMode === 'react' || postMode
         ? `v.__reactProps$fixture = {story: ${JSON.stringify(media)}};`
         : fixtureMode === 'xhr' ? `await new Promise(resolve=>{const xhr=new XMLHttpRequest();xhr.open('GET','/graphql/query/');xhr.responseType='json';xhr.onload=resolve;xhr.send();});v.poster='${cdn}/poster.png';`
         : `await fetch('/graphql/query/'); v.poster='${cdn}/poster.png';`;
-      return route.fulfill({contentType: 'text/html', body: `<!doctype html><style>body{margin:0;background:#333}.story-frame{position:relative;width:min(400px,100vw);height:700px;margin:0 auto}video{display:block;width:400px;height:700px;margin:0 auto}.story-frame video{width:100%}button{position:absolute;left:80%;top:20px}</style>${initial}${postMode ? '<div role="dialog">' : '<div class="story-frame" id="story-frame">'}<video id="v"></video>${postMode ? '' : '</div>'}<button aria-label="${postMode ? 'Like' : 'Pause'}">Control</button>${postMode ? '</div>' : ''}<script>(async()=>{const bytes=await fetch('${cdn}/player.mp4').then(r=>r.arrayBuffer());const v=document.getElementById('v');v.src=URL.createObjectURL(new Blob([bytes],{type:'video/mp4'}));${script}window.fixtureReady=true;})()</script>`});
+      return route.fulfill({contentType: 'text/html', body: `<!doctype html><style>body{margin:0;background:#333}.story-frame{position:relative;width:min(400px,100vw);height:700px;margin:0 auto}video{display:block;width:400px;height:700px;margin:0 auto}.story-frame video{width:100%}button{position:absolute;left:80%;top:20px}</style>${initial}${postMode ? fixtureMode === 'carousel-page' ? '<main>' : '<div role="dialog">' : '<div class="story-frame" id="story-frame">'}<video id="v"></video>${postMode ? '' : '</div>'}${postMode ? '<section><div class="post-actions" style="display:flex;align-items:center"><div role="button"><svg aria-label="Like" width="24" height="24"></svg></div><div role="button"><svg aria-label="Comment" width="24" height="24"></svg></div><div role="button"><svg aria-label="Share" width="24" height="24"></svg></div></div></section>' : '<button aria-label="Pause">Control</button>'}${postMode ? fixtureMode === 'carousel-page' ? '</main>' : '</div>' : ''}<script>(async()=>{const bytes=await fetch('${cdn}/player.mp4').then(r=>r.arrayBuffer());const v=document.getElementById('v');v.src=URL.createObjectURL(new Blob([bytes],{type:'video/mp4'}));${script}window.fixtureReady=true;})()</script>`});
     });
     await context.addCookies([{name: 'fixture-session', value: 'signed-in', domain: 'scontent.cdninstagram.com', path: '/', secure: true, sameSite: 'None'}]);
     async function openViewer(query = '') {
@@ -134,6 +134,21 @@ async function run() {
     await downloadAndVerify([videoBytes, imageBytes], '#poststash-post-download');
     console.log('PASS: private carousel saves every video and photo from initial page data');
 
+    fixtureMode = 'carousel-page';
+    await page.goto('https://www.instagram.com/private_fixture/p/FixturePost/');
+    await page.waitForFunction(() => window.fixtureReady);
+    await page.locator('#poststash-post-download button').waitFor();
+    const placement = await page.evaluate(() => {
+      const host = document.getElementById('poststash-post-download');
+      const share = document.querySelector('svg[aria-label="Share"]').closest('[role="button"]');
+      const button = host.shadowRoot.querySelector('button').getBoundingClientRect();
+      const anchor = share.getBoundingClientRect();
+      return {group: host.dataset.group, sibling: share.nextElementSibling === host, sameRow: host.parentElement === share.parentElement, aligned: Math.abs(button.top + button.height / 2 - anchor.top - anchor.height / 2) < 1};
+    });
+    assert.deepEqual(placement, {group: 'FixturePost', sibling: true, sameRow: true, aligned: true});
+    await downloadAndVerify([videoBytes, imageBytes], '#poststash-post-download');
+    console.log('PASS: account-prefixed standalone post URL mounts beside Share in the native action row');
+
     fixtureMode = 'react';
     await page.goto(`https://www.instagram.com/stories/private_fixture/${mediaId}/`);
     await page.waitForFunction(() => window.fixtureReady);
@@ -179,7 +194,7 @@ async function run() {
       const video = document.createElement('video'); video.id='next-story-video'; video.src=document.querySelector('#v').src; video.__reactProps$fixture={story:nextMedia};
       frame.append(video); previous.after(frame); previous.style.position='absolute'; previous.style.inset='0'; previous.style.width='800px'; previous.style.visibility='hidden';
     }, nextMedia);
-    await page.waitForFunction(() => document.querySelector('#poststash-story-download')?.parentElement.id === 'current-story-frame');
+    await page.waitForFunction(() => document.querySelector('[data-poststash-story-active]')?.id === 'next-story-video' && document.querySelector('#poststash-story-download')?.parentElement === document.documentElement);
     await downloadAndVerify([nextVideoBytes]);
     console.log('PASS: replacing the Story frame ignores a larger preloaded previous frame');
 
@@ -188,9 +203,9 @@ async function run() {
         const host = document.querySelector('#poststash-story-download');
         const button = host.shadowRoot.querySelector('button').getBoundingClientRect();
         const media = document.querySelector('[data-poststash-story-active]').getBoundingClientRect();
-        return {inside: button.left >= media.left && button.right <= media.right && button.top >= media.top && button.bottom <= media.bottom, inFrame: host.parentElement.id === 'current-story-frame', width: button.width};
+        return {inside: button.left >= media.left && button.right <= media.right && button.top >= media.top && button.bottom <= media.bottom, inFrame: host.parentElement === document.documentElement, width: button.width};
       });
-      assert.equal(bounds.inside, true); assert.equal(bounds.inFrame, true); assert.equal(bounds.width, 40);
+      assert.equal(bounds.inside, true); assert.equal(bounds.inFrame, true); assert.equal(bounds.width, 36);
     }
     await assertInsideFrame();
     await page.screenshot({path: path.join(temp, 'story-frame-desktop.png')});
