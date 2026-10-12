@@ -1,0 +1,10 @@
+{
+  "name": "poststash",
+  "version": "1.5.1",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/session-download.test.cjs",
+    "test:browser": "node tests/browser-download.cjs"
+  },
+  "devDependencies": {"playwright": "1.64.0"}
+}

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Poststash</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <header class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none">
+          <rect x="5.5" y="5.5" width="21" height="21" rx="6.5" />
+          <circle cx="16" cy="16" r="5" />
+          <circle class="flash" cx="22.6" cy="9.7" r="1.35" />
+        </svg>
+      </span>
+      <span class="brand-name">Poststash</span>
+    </header>
+
+    <section class="account" id="account" aria-label="Profile being saved" hidden>
+      <div class="account-main">
+        <div class="avatar-wrap">
+          <img id="profile-avatar" alt="" hidden>
+          <span id="avatar-fallback" aria-hidden="true">IG</span>
+        </div>
+        <div class="account-copy">
+          <h1 id="profile-name"></h1>
+          <p id="profile-handle"></p>
+        </div>
+      </div>
+      <p class="bio" id="profile-bio" hidden></p>
+      <dl class="profile-stats" id="profile-stats" hidden></dl>
+    </section>
+    <p class="profile-empty" id="profile-empty">Open a profile</p>
+    <div class="options" aria-label="Download options">
+      <label>Latest posts <input id="limit" type="number" min="0" max="10000" value="0" title="0 means all posts"></label>
+      <label>Format <select id="media-type"><option value="all">All</option><option value="photos">Photos</option><option value="videos">Videos</option></select></label>
+      <label>From <input id="date-from" type="date"></label>
+      <label>To <input id="date-to" type="date"></label>
+    </div>
+    <fieldset class="content-types">
+      <legend>Content to download</legend>
+      <label><input type="checkbox" name="category" value="posts" checked> Posts</label>
+      <label><input type="checkbox" name="category" value="reels" checked> Reels</label>
+      <label><input type="checkbox" name="category" value="stories"> Stories</label>
+      <label><input type="checkbox" name="category" value="highlights"> Highlights</label>
+    </fieldset>
+    <button id="profile" class="primary">Download all media</button>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>
