@@ -117,9 +117,3 @@ Files are saved inside your browser's download folder:
 - **Still stuck:** [open an issue](https://github.com/lurantys/poststash/issues) with the page type and a screenshot.
 
 </details>
-
-## Development
-
-`vendor/youtube-sabr.js` bundles [GoogleVideo](https://github.com/LuanRT/googlevideo) 4.1.1 under its MIT license. The extension loads this local file directly; installation needs no build step. To regenerate it after changing `youtube-sabr-entry.js`, run `npm ci` and `npm run build:youtube`.
-
-Audio downloads use the current player’s SABR stream, with a direct audio request and verified byte ranges as a fallback. Bundled dependency licenses are included in `vendor/`.
