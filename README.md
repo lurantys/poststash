@@ -66,8 +66,8 @@ Open `tiktok.com` and click the **download icon** for the video on screen:
 - **Fullscreen viewer:** beside Favorite in the interaction row.
 
 <p align="center">
-  <img src="docs/images/tiktok-viewer.png" alt="Real TikTok fullscreen viewer with the download icon beside Favorite" width="900">
-  <br><sub>Icon-only controls that match TikTok's native buttons.</sub>
+  <img src="docs/images/tiktok-viewer.png" alt="Real TikTok video feed with Poststash’s download icon in the action column" width="900">
+  <br><sub>Download from the TikTok feed using the native action column.</sub>
 </p>
 
 TikTok support currently covers **individual videos**. Profile downloads and photo slideshows are not supported yet.
