@@ -60,18 +60,7 @@ main { padding: 22px 22px 18px; }
   margin-bottom: 22px;
 }
 
-.brand-mark {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 9px;
-  background: linear-gradient(145deg, var(--instagram-yellow) 2%, var(--instagram-orange) 28%, var(--instagram-pink) 60%, var(--instagram-purple) 100%);
-}
-
-.brand-mark svg { width: 22px; height: 22px; stroke: #fff; stroke-width: 1.8; }
-.brand-mark .flash { fill: #fff; stroke: none; }
+.brand-mark { width: 30px; height: 30px; flex: 0 0 30px; object-fit: contain; }
 .brand-name { font-size: 13px; font-weight: 600; letter-spacing: -0.1px; }
 
 .account { margin: 0 0 18px; }

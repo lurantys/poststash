@@ -4,7 +4,12 @@
   "version": "1.5.1",
   "minimum_chrome_version": "116",
   "description": "Save media from social profiles.",
-  "permissions": ["activeTab", "downloads", "scripting", "offscreen"],
+  "permissions": [
+    "activeTab",
+    "downloads",
+    "scripting",
+    "offscreen"
+  ],
   "background": {
     "service_worker": "background.js"
   },
@@ -19,19 +24,42 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://www.instagram.com/*"],
-      "js": ["session-media.js", "capture.js", "viewer.js", "story-frame.js"],
+      "matches": [
+        "https://www.instagram.com/*"
+      ],
+      "js": [
+        "session-media.js",
+        "capture.js",
+        "viewer.js",
+        "story-frame.js"
+      ],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
-      "matches": ["https://www.instagram.com/*"],
-      "js": ["page-button.js"],
+      "matches": [
+        "https://www.instagram.com/*"
+      ],
+      "js": [
+        "page-button.js"
+      ],
       "run_at": "document_idle"
     }
   ],
   "action": {
     "default_title": "Poststash",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "assets/icons/poststash-16.png",
+      "32": "assets/icons/poststash-32.png",
+      "48": "assets/icons/poststash-48.png",
+      "128": "assets/icons/poststash-128.png"
+    }
+  },
+  "icons": {
+    "16": "assets/icons/poststash-16.png",
+    "32": "assets/icons/poststash-32.png",
+    "48": "assets/icons/poststash-48.png",
+    "128": "assets/icons/poststash-128.png"
   }
 }
