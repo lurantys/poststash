@@ -37,7 +37,7 @@
   }
   function postActionRows(scope){
     const rows=[];
-    for(const icon of scope.querySelectorAll('svg[aria-label="Share"],svg[aria-label="Send post"]')){
+    for(const icon of scope.querySelectorAll('svg[aria-label="Share"],svg[aria-label="Share Post"],svg[aria-label="Send post"]')){
       if(!icon.getClientRects().length)continue;
       const anchor=icon.closest('button,[role="button"]');
       if(!anchor)continue;
