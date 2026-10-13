@@ -197,7 +197,7 @@ async function downloadYouTubeMedia(message, sender) {
   if (!shot || !/^[A-Za-z0-9_-]{11}$/.test(shot.id || '')) throw new Error('YouTube did not provide this video.');
   const asset = (shot.assets || []).find(item => item.kind === 'audio');
   if (!asset) throw new Error('YouTube did not expose a downloadable audio file for this video. This playback format is not supported yet.');
-  const filename = `YouTube/${safeName(shot.username)}/audio/${safeMediaTitle(shot.title, shot.id)}`;
+  const filename = `YouTube/${safeMediaTitle(shot.title, shot.id)}`;
   try { await saveVerifiedMedia({...asset, kind: 'audio'}, filename, 'youtube'); }
   catch (error) {
     if (asset.sabr || !/HTTP 403/.test(error.message || '')) throw error;

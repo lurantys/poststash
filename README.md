@@ -107,7 +107,7 @@ Files are saved inside your browser's download folder:
 - TikTok videos: **`TikTok/<username>/videos/`**
 - TikTok photos: **`TikTok/<username>/photos/`**
 - X: **`X/`**
-- YouTube audio: **`YouTube/<channel>/audio/`**
+- YouTube audio: **`YouTube/`**
 
 <details>
 <summary><strong>Something not working?</strong></summary>
