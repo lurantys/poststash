@@ -1,13 +1,19 @@
 {
   "name": "poststash",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "private": true,
   "scripts": {
     "test": "node --test tests/session-download.test.cjs",
     "test:browser": "node tests/browser-download.cjs",
-    "test:tiktok": "node tests/tiktok-download.cjs"
+    "test:tiktok": "node tests/tiktok-download.cjs",
+    "test:youtube": "node --max-old-space-size=256 tests/youtube-download.cjs",
+    "build:youtube": "esbuild youtube-sabr-entry.js --bundle --platform=browser --target=chrome116 --format=iife --global-name=PoststashSabr --minify --legal-comments=eof --outfile=vendor/youtube-sabr.js"
   },
   "devDependencies": {
+    "esbuild": "0.28.2",
     "playwright": "1.64.0"
+  },
+  "dependencies": {
+    "googlevideo": "4.1.1"
   }
 }

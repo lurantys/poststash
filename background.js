@@ -1,9 +1,13 @@
-importScripts('scanner.js', 'viewer.js', 'tiktok-viewer.js', 'x-viewer.js');
+importScripts('scanner.js', 'viewer.js', 'tiktok-viewer.js', 'x-viewer.js', 'youtube-viewer.js');
 
 const reservedRoutes = new Set(['about', 'accounts', 'developer', 'direct', 'emails', 'explore', 'legal', 'p', 'privacy', 'reel', 'reels', 'stories', 'tv', 'web']);
 const jobs = new Map();
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === 'download-youtube-media') {
+    downloadYouTubeMedia(message, sender).then(sendResponse).catch(error => sendResponse({ok: false, message: error.message || 'Could not save this YouTube video.'}));
+    return true;
+  }
   if (message?.type === 'download-x-post') {
     downloadXPost(message, sender).then(sendResponse).catch(error => sendResponse({ok: false, message: error.message || 'Could not save this X post.'}));
     return true;
@@ -110,6 +114,13 @@ async function handleProfileDownload(message, sender, job) {
 
 let creatingOffscreen;
 const fileDownloads = new Map();
+const audioFilenames = new Map();
+
+chrome.downloads.onDeterminingFilename.addListener((download, suggest) => {
+  const filename = audioFilenames.get(download.url);
+  if (filename) suggest({filename, conflictAction: 'uniquify'});
+  else suggest();
+});
 
 async function ensureOffscreen() {
   if (creatingOffscreen) return creatingOffscreen;
@@ -133,10 +144,12 @@ chrome.downloads.onChanged.addListener(delta => finishFileDownload(delta.id, del
 
 async function saveVerifiedMedia(asset, filenameBase, platform = 'instagram') {
   await ensureOffscreen();
-  const file = await chrome.runtime.sendMessage({target: 'poststash-offscreen', type: 'prepare-media-file', urls: asset.urls, kind: asset.kind, platform});
+  const file = await chrome.runtime.sendMessage({target: 'poststash-offscreen', type: 'prepare-media-file', urls: asset.urls, sabr: asset.sabr, kind: asset.kind, platform});
   if (!file?.ok) throw new Error(file?.message || 'Could not prepare a complete media file.');
+  const filename = `${filenameBase}.${file.ext}`;
+  if (asset.kind === 'audio') audioFilenames.set(file.url, filename);
   try {
-    const id = await chrome.downloads.download({url: file.url, filename: `${filenameBase}.${file.ext}`, conflictAction: 'uniquify', saveAs: false});
+    const id = await chrome.downloads.download({url: file.url, filename, conflictAction: 'uniquify', saveAs: false});
     await new Promise((resolve, reject) => {
       fileDownloads.set(id, {resolve, reject, token: file.token});
       // A small Blob can complete before download() resolves; inspect the current state too.
@@ -147,7 +160,7 @@ async function saveVerifiedMedia(asset, filenameBase, platform = 'instagram') {
   } catch (error) {
     chrome.runtime.sendMessage({target: 'poststash-offscreen', type: 'release-media-file', token: file.token}).catch(() => {});
     throw error;
-  }
+  } finally { audioFilenames.delete(file.url); }
 }
 
 async function downloadViewerMedia(message, sender) {
@@ -171,6 +184,31 @@ async function downloadViewerMedia(message, sender) {
     catch (error) { throw new Error(`${error.message}${saved ? ` ${saved} of ${assets.length} files were saved.` : ''}`); }
   }
   return {ok: true, message: `Saved ${saved} complete media file${saved === 1 ? '' : 's'}.`};
+}
+
+async function downloadYouTubeMedia(message, sender) {
+  const tabId = sender.tab?.id;
+  if (!Number.isInteger(tabId)) throw new Error('Could not identify the YouTube tab.');
+  const tab = await chrome.tabs.get(tabId);
+  if (!['www.youtube.com', 'youtube.com', 'm.youtube.com'].includes(new URL(tab.url).hostname)) throw new Error('Open the video on YouTube first.');
+  const [execution] = await chrome.scripting.executeScript({target: {tabId}, world: 'MAIN', func: resolveYouTubeMedia, args: [{clickId: message.clickId}]});
+  const shot = execution?.result;
+  if (shot?.error) throw new Error(shot.error);
+  if (!shot || !/^[A-Za-z0-9_-]{11}$/.test(shot.id || '')) throw new Error('YouTube did not provide this video.');
+  const asset = (shot.assets || []).find(item => item.kind === 'audio');
+  if (!asset) throw new Error('YouTube did not expose a downloadable audio file for this video. This playback format is not supported yet.');
+  const filename = `YouTube/${safeName(shot.username)}/audio/${safeMediaTitle(shot.title, shot.id)}`;
+  try { await saveVerifiedMedia({...asset, kind: 'audio'}, filename, 'youtube'); }
+  catch (error) {
+    if (asset.sabr || !/HTTP 403/.test(error.message || '')) throw error;
+    const [retry] = await chrome.scripting.executeScript({target: {tabId}, world: 'MAIN', func: resolveYouTubeSabr, args: [{videoId: shot.id}]});
+    const refreshed = retry?.result;
+    if (refreshed?.error) throw new Error(refreshed.error);
+    const fallback = refreshed?.assets?.find(item => item.kind === 'audio');
+    if (!fallback?.sabr) throw error;
+    await saveVerifiedMedia(fallback, filename, 'youtube');
+  }
+  return {ok: true, message: 'YouTube audio saved.'};
 }
 
 async function downloadTikTokVideo(message, sender) {
@@ -217,6 +255,19 @@ async function downloadXPost(message, sender) {
   }
   if (!saved) throw new Error('X did not provide any downloadable photos or videos for this post.');
   return {ok: true, message: `Saved ${saved} file${saved === 1 ? '' : 's'} from the X post.`};
+}
+
+function safeMediaTitle(value, fallback) {
+  let title = String(value || '').normalize('NFC').replace(/[<>:"/\\|?*\u0000-\u001f\u007f]/g, '_').trim().replace(/^[. ]+|[. ]+$/g, '');
+  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(title)) title = `_${title}`;
+  const encoder = new TextEncoder();
+  let filename = '', bytes = 0;
+  for (const character of title) {
+    bytes += encoder.encode(character).length;
+    if (bytes > 180) break;
+    filename += character;
+  }
+  return filename.replace(/[. ]+$/g, '') || fallback;
 }
 
 function safeName(value) {

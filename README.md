@@ -4,7 +4,7 @@
 
 <h1 align="center">Poststash</h1>
 
-<p align="center">A multi-platform media downloader for Instagram, TikTok, and X.</p>
+<p align="center">A multi-platform media downloader for Instagram, TikTok, X, and YouTube.</p>
 
 <p align="center">
   <a href="https://github.com/lurantys/poststash/archive/refs/heads/main.zip"><strong>Download ZIP</strong></a>
@@ -16,7 +16,7 @@
 
 <p align="center">
   <img alt="Chrome 116 or newer" src="https://img.shields.io/badge/Chrome-116%2B-5368ff?style=flat-square">
-  <img alt="Version 1.5.1" src="https://img.shields.io/badge/version-1.5.1-17152b?style=flat-square">
+  <img alt="Version 1.6.0" src="https://img.shields.io/badge/version-1.6.0-17152b?style=flat-square">
 </p>
 
 <p align="center">
@@ -24,16 +24,16 @@
   <br><sub>The download icon sits beside Share, in Instagram's own action row.</sub>
 </p>
 
-| Instagram | TikTok | X | Your filters |
-| --- | --- | --- | --- |
-| Posts, carousels, Reels, Stories, Highlights, and profile downloads. | The current video or photo slideshow in the feed or fullscreen viewer. | Photos and videos from an individual post. | Content types, format, dates, and post limits for Instagram profiles. |
+| Instagram | TikTok | X | YouTube | Your filters |
+| --- | --- | --- | --- | --- |
+| Posts, carousels, Reels, Stories, Highlights, and profile downloads. | The current video or photo slideshow in the feed or fullscreen viewer. | Photos and videos from an individual post. | Audio from individual videos and Shorts, saved with the video title. | Content types, format, dates, and post limits for Instagram profiles. |
 
 ## Install
 
 1. **[Download the ZIP](https://github.com/lurantys/poststash/archive/refs/heads/main.zip)** and unzip it.
 2. Open **`chrome://extensions`** in Chrome and turn on **Developer mode**.
 3. Click **Load unpacked** and select the **`poststash-main`** folder.
-4. Refresh your Instagram, TikTok, and X tabs. Pin Poststash to the toolbar for easy access.
+4. Refresh your Instagram, TikTok, X, and YouTube tabs. Pin Poststash to the toolbar for easy access.
 
 **Chrome 116+ · No build step · Uses your browser session**
 
@@ -83,6 +83,22 @@ The button is also available beside Share in the media viewer. It shows a spinne
   <br><sub>Save media from an X post using the download icon beside Share.</sub>
 </p>
 
+### YouTube
+
+Open a video and click **Save audio** beside Share, below the video. On Shorts, click **Audio** in the current Short's action column.
+
+- Audio saves as **M4A** when available, with **WebM** as a fallback.
+- The filename uses the **video title**, preserving spaces and Unicode. Characters that filenames cannot contain are replaced, and very long titles are shortened.
+- Downloads work while the video is **paused**. The button shows **Saving…** while the file is prepared.
+- Status messages fade in and out and disappear within **two seconds**.
+
+<p align="center">
+  <img src="docs/images/youtube-audio.png" alt="YouTube video with Poststash's Save audio button beside Share, matching YouTube's download icon" width="900">
+  <br><sub>Save a video's audio directly from YouTube's action row.</sub>
+</p>
+
+Live broadcasts are not supported. If YouTube refuses access or a download fails, the button shows an error and lets you retry.
+
 ### Download locations
 
 Files are saved inside your browser's download folder:
@@ -91,12 +107,19 @@ Files are saved inside your browser's download folder:
 - TikTok videos: **`TikTok/<username>/videos/`**
 - TikTok photos: **`TikTok/<username>/photos/`**
 - X: **`X/`**
+- YouTube audio: **`YouTube/<channel>/audio/`**
 
 <details>
 <summary><strong>Something not working?</strong></summary>
 
-- **Missing button:** reload Poststash in `chrome://extensions`, then refresh Instagram, TikTok, or X.
+- **Missing button:** reload Poststash in `chrome://extensions`, then refresh Instagram, TikTok, X, or YouTube.
 - **Failed download:** check that the media opens while you're signed in, then retry.
 - **Still stuck:** [open an issue](https://github.com/lurantys/poststash/issues) with the page type and a screenshot.
 
 </details>
+
+## Development
+
+`vendor/youtube-sabr.js` bundles [GoogleVideo](https://github.com/LuanRT/googlevideo) 4.1.1 under its MIT license. The extension loads this local file directly; installation needs no build step. To regenerate it after changing `youtube-sabr-entry.js`, run `npm ci` and `npm run build:youtube`.
+
+Audio downloads use the current player’s SABR stream, with a direct audio request and verified byte ranges as a fallback. Bundled dependency licenses are included in `vendor/`.
