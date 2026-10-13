@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "test": "node --test tests/session-download.test.cjs",
-    "test:browser": "node tests/browser-download.cjs"
+    "test:browser": "node tests/browser-download.cjs",
+    "test:tiktok": "node tests/tiktok-download.cjs"
   },
-  "devDependencies": {"playwright": "1.64.0"}
+  "devDependencies": {
+    "playwright": "1.64.0"
+  }
 }

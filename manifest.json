@@ -17,7 +17,10 @@
     "https://www.instagram.com/*",
     "https://*.cdninstagram.com/*",
     "https://*.cdninstagram.net/*",
-    "https://*.fbcdn.net/*"
+    "https://*.fbcdn.net/*",
+    "https://*.tiktok.com/*",
+    "https://*.tiktokcdn.com/*",
+    "https://*.tiktokcdn-us.com/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; img-src 'self' data: https://*.cdninstagram.com https://*.fbcdn.net;"
@@ -42,6 +45,27 @@
       ],
       "js": [
         "page-button.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.tiktok.com/*",
+        "https://tiktok.com/*"
+      ],
+      "js": [
+        "tiktok-session.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://www.tiktok.com/*",
+        "https://tiktok.com/*"
+      ],
+      "js": [
+        "tiktok-button.js"
       ],
       "run_at": "document_idle"
     }

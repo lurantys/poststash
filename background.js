@@ -1,9 +1,13 @@
-importScripts('scanner.js', 'viewer.js');
+importScripts('scanner.js', 'viewer.js', 'tiktok-viewer.js');
 
 const reservedRoutes = new Set(['about', 'accounts', 'developer', 'direct', 'emails', 'explore', 'legal', 'p', 'privacy', 'reel', 'reels', 'stories', 'tv', 'web']);
 const jobs = new Map();
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === 'download-tiktok-video') {
+    downloadTikTokVideo(message, sender).then(sendResponse).catch(error => sendResponse({ok: false, message: error.message || 'Could not save this TikTok video.'}));
+    return true;
+  }
   if (message?.type === 'download-progress' && sender.tab?.id) {
     const job = jobs.get(sender.tab.id);
     if (job && Number.isFinite(message.pages)) Object.assign(job, message);
@@ -107,7 +111,7 @@ async function ensureOffscreen() {
   if (creatingOffscreen) return creatingOffscreen;
   creatingOffscreen = (async () => {
     const existing = await chrome.runtime.getContexts({contextTypes: ['OFFSCREEN_DOCUMENT'], documentUrls: [chrome.runtime.getURL('offscreen.html')]});
-    if (!existing.length) await chrome.offscreen.createDocument({url: 'offscreen.html', reasons: ['BLOBS'], justification: 'Fetch, validate, and save complete Instagram media files.'});
+    if (!existing.length) await chrome.offscreen.createDocument({url: 'offscreen.html', reasons: ['BLOBS'], justification: 'Fetch, validate, and save complete media files.'});
   })();
   try { await creatingOffscreen; } finally { creatingOffscreen = null; }
 }
@@ -123,9 +127,9 @@ async function finishFileDownload(id, state, error) {
 
 chrome.downloads.onChanged.addListener(delta => finishFileDownload(delta.id, delta.state?.current, delta.error?.current));
 
-async function saveVerifiedMedia(asset, filenameBase) {
+async function saveVerifiedMedia(asset, filenameBase, platform = 'instagram') {
   await ensureOffscreen();
-  const file = await chrome.runtime.sendMessage({target: 'poststash-offscreen', type: 'prepare-media-file', urls: asset.urls, kind: asset.kind});
+  const file = await chrome.runtime.sendMessage({target: 'poststash-offscreen', type: 'prepare-media-file', urls: asset.urls, kind: asset.kind, platform});
   if (!file?.ok) throw new Error(file?.message || 'Could not prepare a complete media file.');
   try {
     const id = await chrome.downloads.download({url: file.url, filename: `${filenameBase}.${file.ext}`, conflictAction: 'uniquify', saveAs: false});
@@ -163,6 +167,19 @@ async function downloadViewerMedia(message, sender) {
     catch (error) { throw new Error(`${error.message}${saved ? ` ${saved} of ${assets.length} files were saved.` : ''}`); }
   }
   return {ok: true, message: `Saved ${saved} complete media file${saved === 1 ? '' : 's'}.`};
+}
+
+async function downloadTikTokVideo(message, sender) {
+  const tabId = sender.tab?.id;
+  if (!Number.isInteger(tabId)) throw new Error('Could not identify the TikTok tab.');
+  const tab = await chrome.tabs.get(tabId);
+  if (!['https://www.tiktok.com', 'https://tiktok.com'].includes(new URL(tab.url).origin)) throw new Error('Open the video on TikTok first.');
+  const [execution] = await chrome.scripting.executeScript({target: {tabId}, world: 'MAIN', func: resolveTikTokVideo, args: [{clickId: message.clickId}]});
+  const video = execution?.result;
+  if (video?.error) throw new Error(video.error);
+  if (video?.kind !== 'video' || !/^\d{10,}$/.test(video.id || '') || !video.urls?.length) throw new Error('TikTok did not provide a complete video source.');
+  await saveVerifiedMedia(video, `TikTok/${safeName(video.username)}/videos/${video.id}`, 'tiktok');
+  return {ok: true, message: 'TikTok video saved.'};
 }
 
 function safeName(value) {

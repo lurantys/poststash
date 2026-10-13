@@ -4,7 +4,7 @@
 
 <h1 align="center">Poststash</h1>
 
-<p align="center">Save Instagram media without leaving the page.</p>
+<p align="center">Save Instagram and TikTok media without leaving the page.</p>
 
 <p align="center">
   <a href="https://github.com/lurantys/poststash/archive/refs/heads/main.zip"><strong>Download ZIP</strong></a>
@@ -24,26 +24,28 @@
   <br><sub>The download icon sits beside Share, in Instagram's own action row.</sub>
 </p>
 
-| Individual downloads | Profile downloads | Your filters |
+| Instagram | TikTok | Your filters |
 | --- | --- | --- |
-| Photos, videos, full carousels, Reels, Stories, and Highlights. | Save a profile's media with **Download all media**. | Choose content types, photos or videos, dates, and a post limit. |
+| Posts, carousels, Reels, Stories, Highlights, and profile downloads. | The current video in the feed or fullscreen viewer. | Content types, format, dates, and post limits for Instagram profiles. |
 
 ## Install
 
 1. **[Download the ZIP](https://github.com/lurantys/poststash/archive/refs/heads/main.zip)** and unzip it.
 2. Open **`chrome://extensions`** in Chrome and turn on **Developer mode**.
 3. Click **Load unpacked** and select the **`poststash-main`** folder.
-4. Refresh your Instagram tabs. Pin Poststash to the toolbar for easy access.
+4. Refresh your Instagram and TikTok tabs. Pin Poststash to the toolbar for easy access.
 
-**Chrome 116+ · No build step · Uses your signed-in Instagram session**
+**Chrome 116+ · No build step · Uses your browser session**
 
 ## Use it
+
+### Instagram
 
 **One post or Reel:** click the download icon beside Share. For carousels, it saves every photo and video.
 
 **A Story or Highlight:** click the download icon in the current Story frame.
 
-**An entire profile:** open the profile and click **Download all media** beside its name. Open the extension popup to choose filters; **Latest posts = `0`** means all posts.
+**An entire Instagram profile:** open the profile and click **Download all media** beside its name. Open the extension popup to choose filters; **Latest posts = `0`** means all posts.
 
 <table>
   <tr>
@@ -56,12 +58,29 @@
   </tr>
 </table>
 
-Files are saved to **`Instagram/<username>/<content type>/`** inside your browser's download folder.
+### TikTok
+
+Open `tiktok.com` and click the **download icon** for the video on screen:
+
+- **Main feed:** below Share in the interaction column.
+- **Fullscreen viewer:** beside Favorite in the interaction row.
+
+<p align="center">
+  <img src="docs/images/tiktok-viewer.png" alt="Real TikTok fullscreen viewer with the download icon beside Favorite" width="900">
+  <br><sub>Icon-only controls that match TikTok's native buttons.</sub>
+</p>
+
+TikTok support currently covers **individual videos**. Profile downloads and photo slideshows are not supported yet.
+
+Files are saved inside your browser's download folder:
+
+- Instagram: **`Instagram/<username>/<content type>/`**
+- TikTok: **`TikTok/<username>/videos/`**
 
 <details>
 <summary><strong>Something not working?</strong></summary>
 
-- **Missing button:** reload Poststash in `chrome://extensions`, then refresh Instagram.
+- **Missing button:** reload Poststash in `chrome://extensions`, then refresh Instagram or TikTok.
 - **Failed download:** check that the media opens while you're signed in, then retry.
 - **Still stuck:** [open an issue](https://github.com/lurantys/poststash/issues) with the page type and a screenshot.
 
