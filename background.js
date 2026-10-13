@@ -114,10 +114,10 @@ async function handleProfileDownload(message, sender, job) {
 
 let creatingOffscreen;
 const fileDownloads = new Map();
-const audioFilenames = new Map();
+const preparedFilenames = new Map();
 
 chrome.downloads.onDeterminingFilename.addListener((download, suggest) => {
-  const filename = audioFilenames.get(download.url);
+  const filename = preparedFilenames.get(download.url);
   if (filename) suggest({filename, conflictAction: 'uniquify'});
   else suggest();
 });
@@ -147,7 +147,9 @@ async function saveVerifiedMedia(asset, filenameBase, platform = 'instagram') {
   const file = await chrome.runtime.sendMessage({target: 'poststash-offscreen', type: 'prepare-media-file', urls: asset.urls, sabr: asset.sabr, kind: asset.kind, platform});
   if (!file?.ok) throw new Error(file?.message || 'Could not prepare a complete media file.');
   const filename = `${filenameBase}.${file.ext}`;
-  if (asset.kind === 'audio') audioFilenames.set(file.url, filename);
+  // Blob URLs can otherwise be saved under their generated UUID instead of
+  // the requested filename, so apply the name again during Chrome's naming event.
+  preparedFilenames.set(file.url, filename);
   try {
     const id = await chrome.downloads.download({url: file.url, filename, conflictAction: 'uniquify', saveAs: false});
     await new Promise((resolve, reject) => {
@@ -160,7 +162,7 @@ async function saveVerifiedMedia(asset, filenameBase, platform = 'instagram') {
   } catch (error) {
     chrome.runtime.sendMessage({target: 'poststash-offscreen', type: 'release-media-file', token: file.token}).catch(() => {});
     throw error;
-  } finally { audioFilenames.delete(file.url); }
+  } finally { preparedFilenames.delete(file.url); }
 }
 
 async function downloadViewerMedia(message, sender) {

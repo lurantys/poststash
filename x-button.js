@@ -27,13 +27,32 @@
     }
     toast.textContent = message; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.remove(), 6500);
   }
+  const nonUserRoutes = new Set(['i', 'home', 'explore', 'search', 'notifications', 'messages', 'settings']);
+  function statusFromHref(href) {
+    const match = href?.match(/\/([^/]+)\/status\/(\d+)/);
+    if (!match) return null;
+    const candidate = match[1];
+    return {id: match[2], username: /^[A-Za-z0-9_]{1,15}$/.test(candidate) && !nonUserRoutes.has(candidate.toLowerCase()) ? candidate : ''};
+  }
+  function authorUsername(container) {
+    const author = container.querySelector('[data-testid="User-Name"]');
+    for (const anchor of author?.querySelectorAll('a[href]') || []) {
+      const path = anchor.getAttribute('href')?.split(/[?#]/)[0] || '';
+      const match = path.match(/^\/([A-Za-z0-9_]{1,15})\/?$/);
+      if (match && !nonUserRoutes.has(match[1].toLowerCase())) return match[1];
+    }
+    const text = author?.textContent?.match(/(?:^|\s)@([A-Za-z0-9_]{1,15})\b/);
+    return text?.[1] || '';
+  }
   function statusId(article) {
+    let found = null;
     for (const anchor of article.querySelectorAll('a[href*="/status/"]')) {
       if (anchor.closest('article[data-testid="tweet"]') !== article) continue;
-      const match = anchor.getAttribute('href')?.match(/\/([^/]+)\/status\/(\d+)/);
-      if (match) return {id: match[2], username: match[1]};
+      found = statusFromHref(anchor.getAttribute('href'));
+      if (found) break;
     }
-    return null;
+    if (found) found.username = authorUsername(article) || found.username;
+    return found;
   }
   function hasMedia(article) {
     if (article.querySelector('video,[data-testid="videoPlayer"],[data-testid="tweetPhoto"]')) return true;
@@ -78,8 +97,8 @@
     for (let root = row.parentElement, depth = 0; root && depth < 12; root = root.parentElement, depth++) {
       if (!root.querySelector('video,[data-testid="tweetPhoto"],img[src*="pbs.twimg.com/media"]')) continue;
       for (const anchor of root.querySelectorAll('a[href*="/status/"]')) {
-        const match = anchor.getAttribute('href')?.match(/\/([^/]+)\/status\/(\d+)/);
-        if (match) return {status: {id: match[2], username: match[1]}, container: root, viewer: true};
+        const status = statusFromHref(anchor.getAttribute('href'));
+        if (status) return {status: {...status, username: authorUsername(root) || status.username}, container: root, viewer: true};
       }
     }
     return null;
