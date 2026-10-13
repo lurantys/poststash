@@ -8,25 +8,37 @@
     toast.textContent = message; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.remove(), 6500);
   }
   function mount() {
-    const media = document.querySelector('video[data-poststash-tiktok-active]'), id = media?.getAttribute('data-poststash-tiktok-active');
-    let anchor = null, fullscreen = false, row = null;
-    for (let root = media?.parentElement, depth = 0; root && root !== document.body && depth < 14; root = root.parentElement, depth++) {
-      const browse = browseControl(root);
-      if (browse) { anchor = browse.anchor; row = browse.row; fullscreen = true; break; }
-      anchor = root.querySelector('[data-e2e="share-icon"],[data-e2e="browse-share"],[role="button"][aria-label^="Share video"]');
-      if (anchor) break;
+    const media = document.querySelector('[data-poststash-tiktok-active]'), id = media?.getAttribute('data-poststash-tiktok-active');
+    let anchor = null, fullscreen = false, row = null, floating = false;
+    if (id) {
+      for (let root = media?.parentElement, depth = 0; root && root !== document.body && depth < 14; root = root.parentElement, depth++) {
+        const browse = browseControl(root);
+        if (browse) { anchor = browse.anchor; row = browse.row; fullscreen = true; break; }
+        anchor = root.querySelector('[data-e2e="share-icon"],[data-e2e="browse-share"],[role="button"][aria-label^="Share video"],[role="button"][aria-label^="Share photo"],button[aria-label^="Share"]');
+        if (anchor) break;
+      }
+      if (!anchor && /\/@[^/]+\/(?:video|photo)\/\d+/.test(location.pathname)) {
+        const browse = browseControl(document);
+        if (browse) { anchor = browse.anchor; row = browse.row; fullscreen = true; }
+      }
+      // Message/modal viewers can use a different action row without a share anchor.
+      // Fall back to a floating button so the post is still downloadable.
+      if (!anchor) floating = true;
     }
-    if (!anchor && id && /\/@[^/]+\/video\/\d+/.test(location.pathname)) {
-      const browse = browseControl(document);
-      if (browse) { anchor = browse.anchor; row = browse.row; fullscreen = true; }
-    }
-    if (!anchor || !id) { control?.host.remove(); control = null; return; }
-    if (control?.id !== id || control.fullscreen !== fullscreen || !control.host.isConnected) {
+    if (!id) { control?.host.remove(); control = null; return; }
+    const mode = floating ? 'floating' : fullscreen ? 'browse' : 'feed';
+    if (control?.id !== id || control.mode !== mode || !control.host.isConnected) {
       control?.host.remove();
       const host = document.createElement('span'); host.id = hostId; host.dataset.poststashTiktokButton = 'true'; host.dataset.videoId = id;
+      let button;
+      if (floating) {
+        host.style.cssText = 'position:fixed;bottom:96px;right:24px;z-index:2147483647;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:#202020;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.45);';
+        button = document.createElement('button'); button.innerHTML = icon;
+        button.style.cssText = 'all:unset;box-sizing:border-box;display:grid;place-items:center;width:48px;height:48px;cursor:pointer;color:inherit;';
+        host.append(button);
+      } else {
       host.style.cssText = `display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin:${fullscreen ? '0' : '0 0 8px'};`;
       const nativeCircle = fullscreen ? anchor : anchor.querySelector('[data-testid="tux-web-icon-button-container"]');
-      let button;
       if (nativeCircle) {
         const circle = nativeCircle.cloneNode(true);
         for (const count of circle.querySelectorAll('strong,[data-e2e$="-count"]')) count.remove();
@@ -49,26 +61,30 @@
         button.style.cssText = 'all:unset;box-sizing:border-box;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--tux-v2-color-ui-shape-neutral-4,rgba(255,255,255,.12));color:inherit;cursor:pointer;';
         host.append(button);
       }
-      button.type = 'button'; button.title = 'Download this TikTok video'; button.setAttribute('aria-label', button.title);
+      }
+      button.type = 'button'; button.title = 'Download this TikTok post'; button.setAttribute('aria-label', button.title);
       button.addEventListener('click', async event => {
         event.preventDefault(); event.stopPropagation();
         if (button.disabled) return;
         button.disabled = true; button.setAttribute('aria-busy', 'true'); button.style.opacity = '.55';
         try {
-          if (!host.dataset.clickId) throw new Error('The video click could not be captured. Refresh TikTok and try again.');
+          if (!host.dataset.clickId) throw new Error('The post click could not be captured. Refresh TikTok and try again.');
           const response = await chrome.runtime.sendMessage({type: 'download-tiktok-video', clickId: host.dataset.clickId});
-          if (!response?.ok) throw new Error(response?.message || 'Could not download this TikTok video.');
+          if (!response?.ok) throw new Error(response?.message || 'Could not download this TikTok post.');
           notify(response.message || 'Video saved.');
         } catch (error) {
           const message = /context invalid/i.test(error.message) ? 'Poststash was reloaded. Refresh this TikTok tab and try again.' : error.message;
           button.title = message; notify(message);
         } finally { button.disabled = false; button.setAttribute('aria-busy', 'false'); button.style.opacity = ''; }
       });
-      control = {host, id, fullscreen};
+      control = {host, id, mode};
+      if (floating && !host.isConnected) document.documentElement.append(host);
     }
-    let sibling = anchor;
-    if (fullscreen) while (sibling.parentElement && sibling.parentElement !== row) sibling = sibling.parentElement;
-    if (sibling.nextElementSibling !== control.host) sibling.insertAdjacentElement('afterend', control.host);
+    if (!floating) {
+      let sibling = anchor;
+      if (fullscreen) while (sibling.parentElement && sibling.parentElement !== row) sibling = sibling.parentElement;
+      if (sibling.nextElementSibling !== control.host) sibling.insertAdjacentElement('afterend', control.host);
+    }
   }
   function browseControl(scope) {
     const shareGroup = [...scope.querySelectorAll('[data-e2e="browse-share-group"]')].find(group => group.getClientRects().length && !group.closest('[aria-hidden="true"]'));

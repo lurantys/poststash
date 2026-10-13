@@ -179,11 +179,20 @@ async function downloadTikTokVideo(message, sender) {
   const tab = await chrome.tabs.get(tabId);
   if (!['https://www.tiktok.com', 'https://tiktok.com'].includes(new URL(tab.url).origin)) throw new Error('Open the video on TikTok first.');
   const [execution] = await chrome.scripting.executeScript({target: {tabId}, world: 'MAIN', func: resolveTikTokVideo, args: [{clickId: message.clickId}]});
-  const video = execution?.result;
-  if (video?.error) throw new Error(video.error);
-  if (video?.kind !== 'video' || !/^\d{10,}$/.test(video.id || '') || !video.urls?.length) throw new Error('TikTok did not provide a complete video source.');
-  await saveVerifiedMedia(video, `TikTok/${safeName(video.username)}/videos/${video.id}`, 'tiktok');
-  return {ok: true, message: 'TikTok video saved.'};
+  const post = execution?.result;
+  if (post?.error) throw new Error(post.error);
+  if (!/^\d{10,}$/.test(post?.id || '') || (!post?.urls?.length && !post?.assets?.length)) throw new Error('TikTok did not provide a complete media source.');
+  const assets = post.assets?.length ? post.assets : [{kind: post.kind || 'video', urls: post.urls}];
+  let saved = 0;
+  for (const [index, asset] of assets.entries()) {
+    const isVideo = asset.kind === 'video';
+    const dir = isVideo ? 'videos' : 'photos';
+    const filename = `TikTok/${safeName(post.username)}/${dir}/${post.id}${assets.length > 1 ? `-${String(index + 1).padStart(3, '0')}` : ''}`;
+    try { await saveVerifiedMedia({urls: asset.urls, kind: isVideo ? 'video' : 'image'}, filename, 'tiktok'); saved++; }
+    catch (error) { throw new Error(`${error.message}${saved ? ` ${saved} of ${assets.length} files were saved.` : ''}`); }
+  }
+  if (saved === 1) return {ok: true, message: assets[0].kind === 'video' ? 'TikTok video saved.' : 'TikTok photo saved.'};
+  return {ok: true, message: `Saved ${saved} TikTok photos.`};
 }
 
 async function downloadXPost(message, sender) {

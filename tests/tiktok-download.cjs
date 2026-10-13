@@ -13,19 +13,22 @@ async function run() {
   const videoBytes = Buffer.from(await response.arrayBuffer());
   const marker = Buffer.alloc(12); marker.writeUInt32BE(12); marker.write('freeNEXT', 4);
   const nextBytes = Buffer.concat([videoBytes, marker]);
+  const photoBytes = Buffer.concat([Buffer.from([0xff, 0xd8]), Buffer.alloc(100, 0x41), Buffer.from([0xff, 0xd9])]);
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'poststash-tiktok-test-'));
   const key = path.join(temp, 'fixture.key'), cert = path.join(temp, 'fixture.crt');
   execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', key, '-out', cert, '-subj', '/CN=v16-webapp-prime.tiktok.com', '-days', '1'], {stdio: 'ignore'});
   let empty = false, fixtureMode = 'feed';
   const server = https.createServer({key: await fs.readFile(key), cert: await fs.readFile(cert)}, (request, response) => {
-    const body = empty ? Buffer.alloc(0) : request.url.startsWith('/next') ? nextBytes : videoBytes;
-    response.writeHead(200, {'Content-Type': 'video/mp4', 'Content-Length': body.length, 'Access-Control-Allow-Origin': '*'});
+    const body = empty ? Buffer.alloc(0) : request.url.startsWith('/next') ? nextBytes : request.url.startsWith('/photo') ? photoBytes : videoBytes;
+    const contentType = !empty && request.url.startsWith('/photo') ? 'image/jpeg' : 'video/mp4';
+    response.writeHead(200, {'Content-Type': contentType, 'Content-Length': body.length, 'Access-Control-Allow-Origin': '*'});
     setTimeout(() => response.end(body), 200);
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const cdn = `https://v16-webapp-prime.tiktok.com:${server.address().port}`;
   const first = {id: '7694075503459798324', author: {uniqueId: 'fixture_creator'}, video: {playAddr: `${cdn}/current.mp4`}};
   const next = {id: '7691016655983430919', author: {uniqueId: 'next_creator'}, video: {playAddr: `${cdn}/next.mp4`}};
+  const photoPost = {id: '7694075503459798325', author: {uniqueId: 'photo_creator'}, imagePost: {images: [{imageURL: {urlList: [`${cdn}/photo1.jpg`]}}, {imageURL: {urlList: [`${cdn}/photo2.jpg`]}}]}};
   const context = await chromium.launchPersistentContext(path.join(temp, 'profile'), {
     channel: 'chromium', headless: true, acceptDownloads: true, downloadsPath: path.join(temp, 'files'),
     args: [`--disable-extensions-except=${root}`, `--load-extension=${root}`, '--host-resolver-rules=MAP v16-webapp-prime.tiktok.com 127.0.0.1', '--ignore-certificate-errors', '--no-proxy-server', '--disable-features=LocalNetworkAccessChecks']
@@ -39,6 +42,7 @@ async function run() {
     });
     await context.route('https://www.tiktok.com/**', route => {
       if (route.request().url().includes('/api/')) return route.fulfill({contentType: 'application/json', body: JSON.stringify({itemList: [next]})});
+      if (fixtureMode === 'message-photo') return route.fulfill({contentType: 'text/html', body: `<!doctype html><style>body{margin:0;background:#111;color:white}.chat{display:flex}.viewer img{width:300px;height:500px}.actions button{width:48px;height:48px}</style><script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application/json">${JSON.stringify({itemList: [photoPost]})}</script><div class="chat"><div class="thread">messages</div><div class="viewer"><img id="shared-photo" src="${cdn}/photo1.jpg"><div class="actions"><button aria-label="Like">Like</button><button aria-label="Reply">Reply</button></div></div></div><script>window.fixtureReady=true</script>`});
       if (fixtureMode === 'browse') return route.fulfill({contentType: 'text/html', body: `<!doctype html><style>body{margin:0;background:#111;color:white}article{display:flex;margin:20px}video{width:300px;height:500px}.info{width:420px}.toolbar,.actions{display:flex;align-items:center;justify-content:space-between}.favorite{all:unset;display:flex;align-items:center;gap:8px;height:32px;margin-right:16px}.favorite span{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:rgb(36,36,36)}</style><script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application/json">${JSON.stringify({itemList: [first]})}</script><article><div><video id="player"></video></div><div class="info"><p>Fullscreen video</p><div class="toolbar"><div class="actions"><div class="favorite-wrap" style="display:flex;flex-direction:column"><button class="favorite"><span data-e2e="browse-favorite-icon"><svg width="20" height="20" style="color:rgb(245,245,245)"></svg></span><strong data-e2e="browse-favorite-count">123</strong></button></div></div><div data-e2e="browse-share-group"><button aria-label="Share">Share</button></div></div></div></article><script>(async()=>{const r=await fetch('${cdn}/player.mp4');document.querySelector('#player').src=URL.createObjectURL(await r.blob());window.fixtureReady=true})()</script>`});
       return route.fulfill({contentType: 'text/html', body: `<!doctype html><style>body{background:#111;color:white;margin:0}article{display:flex;width:380px;margin:20px auto}video{width:300px;height:500px}aside{display:flex;flex-direction:column;padding:12px}#preloaded{position:absolute;left:-2000px}button,[role=button]{width:48px;height:48px}</style><script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application/json">${JSON.stringify({itemList: [first]})}</script><article id="current"><div id="xgwrapper-0-${first.id}"><video id="player"></video></div><aside><div role="button" data-e2e="share-icon" aria-label="Share video"><div class="native-circle" data-testid="tux-web-icon-button-container" style="display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:rgb(36,36,36)"><button style="all:unset;display:grid;place-items:center;width:48px;height:48px"><svg width="24" height="24"></svg></button></div></div></aside></article><article id="preloaded"><div id="xgwrapper-0-${next.id}"><video></video></div><aside><div role="button" data-e2e="share-icon">Share</div></aside></article><script>(async()=>{const r=await fetch('${cdn}/player.mp4');document.querySelector('#player').src=URL.createObjectURL(await r.blob());window.fixtureReady=true})()</script>`});
     });
@@ -113,6 +117,29 @@ async function run() {
     previous = new Set((await downloads()).map(item => item.id));
     await button.click(); await verify(videoBytes, first.id, previous);
     console.log('PASS: fullscreen viewer uses its native 32px action button and downloads the selected video');
+    fixtureMode = 'message-photo';
+    await page.goto('https://www.tiktok.com/messages/');
+    await page.waitForFunction(() => window.fixtureReady);
+    await button.waitFor();
+    const modal = await page.evaluate(() => {
+      const host = document.getElementById('poststash-tiktok-download');
+      const snapshot = window.__poststashTikTok.snapshot(host.dataset.videoId);
+      return {id: host.dataset.videoId, floating: getComputedStyle(host).position === 'fixed', kind: snapshot.kind, assets: snapshot.assets?.length};
+    });
+    assert.deepEqual(modal, {id: photoPost.id, floating: true, kind: 'carousel', assets: 2});
+    previous = new Set((await downloads()).map(item => item.id));
+    await button.click();
+    let savedPhotos;
+    for (let attempt = 0; attempt < 100; attempt++) {
+      savedPhotos = (await downloads()).filter(item => !previous.has(item.id));
+      if (savedPhotos.length === 2 && savedPhotos.every(item => item.state === 'complete')) break;
+      await page.waitForTimeout(100);
+    }
+    assert.equal(savedPhotos.length, 2);
+    const requestedPhotos = await worker.evaluate(() => globalThis.testDownloadRequests.slice(-2).map(item => item.filename));
+    assert.deepEqual(requestedPhotos, [`TikTok/photo_creator/photos/${photoPost.id}-001.jpg`, `TikTok/photo_creator/photos/${photoPost.id}-002.jpg`]);
+    for (const item of savedPhotos) assert.deepEqual(await fs.readFile(item.filename), photoBytes);
+    console.log('PASS: message-modal slideshow without a share anchor gets a floating button and saves every photo');
     assert.deepEqual(errors, []);
     await page.screenshot({path: path.join(temp, 'tiktok-button.png')});
     console.log(`TikTok browser checks passed. Screenshot: ${temp}`);

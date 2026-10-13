@@ -26,7 +26,7 @@
 
 | Instagram | TikTok | X | Your filters |
 | --- | --- | --- | --- |
-| Posts, carousels, Reels, Stories, Highlights, and profile downloads. | The current video in the feed or fullscreen viewer. | Photos and videos from an individual post. | Content types, format, dates, and post limits for Instagram profiles. |
+| Posts, carousels, Reels, Stories, Highlights, and profile downloads. | The current video or photo slideshow in the feed or fullscreen viewer. | Photos and videos from an individual post. | Content types, format, dates, and post limits for Instagram profiles. |
 
 ## Install
 
@@ -70,7 +70,7 @@ Open `tiktok.com` and click the **download icon** for the video on screen:
   <br><sub>Download from the TikTok feed using the native action column.</sub>
 </p>
 
-TikTok support currently covers **individual videos**. Profile downloads and photo slideshows are not supported yet.
+TikTok support covers **individual videos and photo slideshows** (each photo saved separately). Profile downloads are not supported yet.
 
 ### X
 
@@ -88,7 +88,8 @@ The button is also available beside Share in the media viewer. It shows a spinne
 Files are saved inside your browser's download folder:
 
 - Instagram: **`Instagram/<username>/<content type>/`**
-- TikTok: **`TikTok/<username>/videos/`**
+- TikTok videos: **`TikTok/<username>/videos/`**
+- TikTok photos: **`TikTok/<username>/photos/`**
 - X: **`X/`**
 
 <details>
