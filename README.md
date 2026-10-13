@@ -6,8 +6,6 @@
 
 <p align="center">A multi-platform media downloader for Instagram, TikTok, and X.</p>
 
-Save photos and videos directly from each platform's page using your browser session. Poststash supports individual media downloads across all three platforms, plus profile downloads on Instagram.
-
 <p align="center">
   <a href="https://github.com/lurantys/poststash/archive/refs/heads/main.zip"><strong>Download ZIP</strong></a>
   &nbsp;·&nbsp;
