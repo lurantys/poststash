@@ -1,9 +1,13 @@
-importScripts('scanner.js', 'viewer.js', 'tiktok-viewer.js');
+importScripts('scanner.js', 'viewer.js', 'tiktok-viewer.js', 'x-viewer.js');
 
 const reservedRoutes = new Set(['about', 'accounts', 'developer', 'direct', 'emails', 'explore', 'legal', 'p', 'privacy', 'reel', 'reels', 'stories', 'tv', 'web']);
 const jobs = new Map();
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === 'download-x-post') {
+    downloadXPost(message, sender).then(sendResponse).catch(error => sendResponse({ok: false, message: error.message || 'Could not save this X post.'}));
+    return true;
+  }
   if (message?.type === 'download-tiktok-video') {
     downloadTikTokVideo(message, sender).then(sendResponse).catch(error => sendResponse({ok: false, message: error.message || 'Could not save this TikTok video.'}));
     return true;
@@ -180,6 +184,30 @@ async function downloadTikTokVideo(message, sender) {
   if (video?.kind !== 'video' || !/^\d{10,}$/.test(video.id || '') || !video.urls?.length) throw new Error('TikTok did not provide a complete video source.');
   await saveVerifiedMedia(video, `TikTok/${safeName(video.username)}/videos/${video.id}`, 'tiktok');
   return {ok: true, message: 'TikTok video saved.'};
+}
+
+async function downloadXPost(message, sender) {
+  const tabId = sender.tab?.id;
+  if (!Number.isInteger(tabId)) throw new Error('Could not identify the X tab.');
+  const tab = await chrome.tabs.get(tabId);
+  if (!['x.com', 'www.x.com', 'twitter.com', 'www.twitter.com'].includes(new URL(tab.url).hostname)) throw new Error('Open the post on X first.');
+  const [execution] = await chrome.scripting.executeScript({target: {tabId}, world: 'MAIN', func: resolveXPost, args: [{clickId: message.clickId}]});
+  const post = execution?.result;
+  if (post?.error) throw new Error(post.error);
+  if (!/^\d{5,}$/.test(post?.id || '') || !Array.isArray(post.assets) || !post.assets.length) throw new Error('X did not provide media for this post.');
+  let saved = 0;
+  const username = safeName(post.username || 'x-user');
+  for (const asset of post.assets) {
+    if (!['image', 'video'].includes(asset.kind) || !Array.isArray(asset.urls) || !asset.urls.length) continue;
+    try {
+      await saveVerifiedMedia(asset, `X/${username}-${post.id}-${String(asset.index).padStart(2, '0')}`, 'x');
+      saved++;
+    } catch (error) {
+      throw new Error(`${error.message}${saved ? ` ${saved} of ${post.assets.length} files were saved.` : ''}`);
+    }
+  }
+  if (!saved) throw new Error('X did not provide any downloadable photos or videos for this post.');
+  return {ok: true, message: `Saved ${saved} file${saved === 1 ? '' : 's'} from the X post.`};
 }
 
 function safeName(value) {

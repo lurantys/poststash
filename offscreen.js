@@ -18,7 +18,7 @@ async function prepareMediaFile(message) {
   for (const value of message.urls || []) {
     try {
       const url = new URL(value);
-      const hosts = message.platform === 'tiktok' ? ['tiktok.com', 'tiktokcdn.com', 'tiktokcdn-us.com'] : ['instagram.com', 'cdninstagram.com', 'cdninstagram.net', 'fbcdn.net'];
+      const hosts = message.platform === 'tiktok' ? ['tiktok.com', 'tiktokcdn.com', 'tiktokcdn-us.com'] : message.platform === 'x' ? ['pbs.twimg.com', 'video.twimg.com'] : ['instagram.com', 'cdninstagram.com', 'cdninstagram.net', 'fbcdn.net'];
       const allowed = hosts.some(host => url.hostname === host || url.hostname.endsWith(`.${host}`));
       if (url.protocol !== 'https:' || !allowed) throw new Error('The media URL is outside the supported media hosts.');
       const response = await fetch(url.href, {credentials: 'include', signal: AbortSignal.timeout(120000)});

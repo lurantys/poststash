@@ -4,7 +4,9 @@
 
 <h1 align="center">Poststash</h1>
 
-<p align="center">Save Instagram and TikTok media without leaving the page.</p>
+<p align="center">A multi-platform media downloader for Instagram, TikTok, and X.</p>
+
+Save photos and videos directly from each platform's page using your browser session. Poststash supports individual media downloads across all three platforms, plus profile downloads on Instagram.
 
 <p align="center">
   <a href="https://github.com/lurantys/poststash/archive/refs/heads/main.zip"><strong>Download ZIP</strong></a>
@@ -24,16 +26,16 @@
   <br><sub>The download icon sits beside Share, in Instagram's own action row.</sub>
 </p>
 
-| Instagram | TikTok | Your filters |
-| --- | --- | --- |
-| Posts, carousels, Reels, Stories, Highlights, and profile downloads. | The current video in the feed or fullscreen viewer. | Content types, format, dates, and post limits for Instagram profiles. |
+| Instagram | TikTok | X | Your filters |
+| --- | --- | --- | --- |
+| Posts, carousels, Reels, Stories, Highlights, and profile downloads. | The current video in the feed or fullscreen viewer. | Photos and videos from an individual post. | Content types, format, dates, and post limits for Instagram profiles. |
 
 ## Install
 
 1. **[Download the ZIP](https://github.com/lurantys/poststash/archive/refs/heads/main.zip)** and unzip it.
 2. Open **`chrome://extensions`** in Chrome and turn on **Developer mode**.
 3. Click **Load unpacked** and select the **`poststash-main`** folder.
-4. Refresh your Instagram and TikTok tabs. Pin Poststash to the toolbar for easy access.
+4. Refresh your Instagram, TikTok, and X tabs. Pin Poststash to the toolbar for easy access.
 
 **Chrome 116+ · No build step · Uses your browser session**
 
@@ -72,15 +74,29 @@ Open `tiktok.com` and click the **download icon** for the video on screen:
 
 TikTok support currently covers **individual videos**. Profile downloads and photo slideshows are not supported yet.
 
+### X
+
+Open `x.com` and click the **download icon** in the action row of a post with photos or video. Poststash saves each media item from that post separately. X support is limited to individual posts; profiles and batches are not supported.
+
+The button is also available beside Share in the media viewer. It shows a spinner while saving and a checkmark after a successful download.
+
+<p align="center">
+  <img src="docs/images/x-post.png" alt="X post with Poststash's download icon beside Share in the action row" width="600">
+  <br><sub>Save media from an X post using the download icon beside Share.</sub>
+</p>
+
+### Download locations
+
 Files are saved inside your browser's download folder:
 
 - Instagram: **`Instagram/<username>/<content type>/`**
 - TikTok: **`TikTok/<username>/videos/`**
+- X: **`X/`**
 
 <details>
 <summary><strong>Something not working?</strong></summary>
 
-- **Missing button:** reload Poststash in `chrome://extensions`, then refresh Instagram or TikTok.
+- **Missing button:** reload Poststash in `chrome://extensions`, then refresh Instagram, TikTok, or X.
 - **Failed download:** check that the media opens while you're signed in, then retry.
 - **Still stuck:** [open an issue](https://github.com/lurantys/poststash/issues) with the page type and a screenshot.
 

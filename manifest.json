@@ -3,12 +3,13 @@
   "name": "Poststash",
   "version": "1.5.1",
   "minimum_chrome_version": "116",
-  "description": "Save media from social profiles.",
+  "description": "Download photos and videos from Instagram, TikTok, and X.",
   "permissions": [
     "activeTab",
     "downloads",
     "scripting",
-    "offscreen"
+    "offscreen",
+    "storage"
   ],
   "background": {
     "service_worker": "background.js"
@@ -20,7 +21,13 @@
     "https://*.fbcdn.net/*",
     "https://*.tiktok.com/*",
     "https://*.tiktokcdn.com/*",
-    "https://*.tiktokcdn-us.com/*"
+    "https://*.tiktokcdn-us.com/*",
+    "https://x.com/*",
+    "https://www.x.com/*",
+    "https://twitter.com/*",
+    "https://www.twitter.com/*",
+    "https://pbs.twimg.com/*",
+    "https://video.twimg.com/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; img-src 'self' data: https://*.cdninstagram.com https://*.fbcdn.net;"
@@ -66,6 +73,31 @@
       ],
       "js": [
         "tiktok-button.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://www.x.com/*",
+        "https://twitter.com/*",
+        "https://www.twitter.com/*"
+      ],
+      "js": [
+        "x-session.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://www.x.com/*",
+        "https://twitter.com/*",
+        "https://www.twitter.com/*"
+      ],
+      "js": [
+        "x-button.js"
       ],
       "run_at": "document_idle"
     }
